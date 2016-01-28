@@ -1,5 +1,5 @@
-require "currency_converter/version"
+require 'currency_converter/version'
+require 'currency_converter/money'
 
 module CurrencyConverter
-  # Your code goes here...
 end
