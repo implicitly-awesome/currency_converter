@@ -26,4 +26,17 @@ describe CurrencyConverter::Money do
       expect(described_class.configuration.rates['usd']).to eq(1.11)
     end
   end
+
+  describe '.new' do
+
+    let(:money) { described_class.new(123.4, 'QWE') }
+
+    it 'creates an instance with provided amount' do
+      expect(money.amount).to eq(123.4)
+    end
+
+    it 'creates an instance with provided currency' do
+      expect(money.currency).to eq('QWE')
+    end
+  end
 end

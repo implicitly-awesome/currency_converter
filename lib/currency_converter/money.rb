@@ -17,5 +17,13 @@ module CurrencyConverter
     def self.conversion_rates(base_currency, rates={})
       @configuration = Configuration.new(base_currency, rates)
     end
+
+    attr_reader :amount, :currency
+
+    def initialize(amount, currency)
+      @amount = amount
+      @currency = currency
+    end
+
   end
 end
