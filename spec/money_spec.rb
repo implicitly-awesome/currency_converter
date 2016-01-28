@@ -2,6 +2,8 @@ require 'spec_helper'
 
 describe CurrencyConverter::Money do
 
+  let(:money) { described_class.new(123.4, 'QWE') }
+
   describe '.conversion_rates' do
 
     context 'if base currency was not provided' do
@@ -29,14 +31,26 @@ describe CurrencyConverter::Money do
 
   describe '.new' do
 
-    let(:money) { described_class.new(123.4, 'QWE') }
-
     it 'creates an instance with provided amount' do
       expect(money.amount).to eq(123.4)
     end
 
     it 'creates an instance with provided currency' do
       expect(money.currency).to eq('QWE')
+    end
+  end
+
+  describe '#inspect' do
+
+    it 'returns human representation' do
+      expect(money.inspect).to eq("#{money.amount} #{money.currency}")
+    end
+  end
+
+  describe '#to_s' do
+
+    it 'returns human representation' do
+      expect(money.to_s).to eq("#{money.amount} #{money.currency}")
     end
   end
 end

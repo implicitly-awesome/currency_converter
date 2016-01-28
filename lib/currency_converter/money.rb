@@ -25,5 +25,13 @@ module CurrencyConverter
       @currency = currency
     end
 
+    def inspect
+      "#{amount} #{currency}"
+    end
+
+    def to_s
+      inspect
+    end
+
   end
 end
