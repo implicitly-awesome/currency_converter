@@ -28,6 +28,11 @@ describe CurrencyConverter::Money do
       described_class.conversion_rates(BASE_CURRENCY, {usd: 1.11})
       expect(described_class.configuration.rates['usd']).to eq(1.11)
     end
+
+    it 'converts currency rates to float in rates' do
+      described_class.conversion_rates(BASE_CURRENCY, {usd: 12})
+      expect(described_class.configuration.rates['usd']).to be_a(Float)
+    end
   end
 
   describe '.new' do
