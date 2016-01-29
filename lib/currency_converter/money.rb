@@ -37,6 +37,7 @@ module CurrencyConverter
     # @param [String|Symbol] currency money currency
     #
     def initialize(amount, currency)
+      raise_not_configured unless self.class.configuration
       raise_unknown_currency unless known_currency?(currency)
       
       @amount = amount.to_f.round(2)
@@ -121,6 +122,10 @@ module CurrencyConverter
 
     def raise_unknown_currency
       raise ArgumentError.new('Unknown currency. Please, configure via .conversion_rates')
+    end
+
+    def raise_not_configured
+      raise RuntimeError.new('Money class was not configured. Please, configure via .conversion_rates')
     end
 
     ##
