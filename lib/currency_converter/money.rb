@@ -1,12 +1,14 @@
 module CurrencyConverter
   class Money
+    include Comparable
+
     class Configuration
       attr_accessor :base_currency, :rates
 
       def initialize(base_currency, rates)
         raise ArgumentError.new('Should provide base currency') unless base_currency
         @base_currency = base_currency.to_s
-        @rates = rates.each_with_object({}) { |(k, v), new_hash| new_hash[k.to_s] = v }
+        @rates = rates.each_with_object({}) { |(k, v), new_hash| new_hash[k.to_s] = v.to_f }
       end
     end
 
@@ -61,6 +63,12 @@ module CurrencyConverter
       do_arithmetics_with(object, :*)
     end
 
+    def <=>(compared_object)
+      return nil unless compared_object.is_a?(CurrencyConverter::Money)
+
+      amount <=> compared_object.convert_to(self.currency).amount
+    end
+
     private
 
     def convert_amount_to(to_currency)
@@ -86,16 +94,21 @@ module CurrencyConverter
       raise ArgumentError.new('Unknown currency. Please, configure via .conversion_rates')
     end
 
-    def reduce_to_float(obj)
-      if obj.is_a?(CurrencyConverter::Money)
-        (self.currency == obj.currency) ? obj.amount : obj.convert_to(self.currency).amount
+    def do_arithmetics_with(object, method_name)
+      first_amount = self.amount
+      second_amount = if object.is_a?(CurrencyConverter::Money)
+        object.convert_to(self.currency).amount
       else
-        obj.to_f rescue raise TypeError.new("Can't convert #{obj.class.name} to Float. Please, provide either CurrencyConverter::Money or Float-convertible object.")
+        object.to_f rescue raise TypeError.new("Can't convert #{object.class.name} to Float. Please, provide either CurrencyConverter::Money or Float-convertible object.")
       end
+
+      self.class.new(first_amount.send(method_name, second_amount), self.currency)
     end
 
-    def do_arithmetics_with(object, method_name)
-      self.class.new(self.amount.send(method_name, reduce_to_float(object)), self.currency)
+    def compare_with(compared_object, method_name)
+      return false unless compared_object.is_a?(CurrencyConverter::Money)
+
+      self.amount.send(method_name, compared_object.convert_to(self.currency))
     end
   end
 end
