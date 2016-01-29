@@ -40,7 +40,7 @@ module CurrencyConverter
       raise_not_configured unless self.class.configuration
       raise_unknown_currency unless known_currency?(currency)
       
-      @amount = amount.to_f.round(2)
+      @amount = amount.to_f#.round(2)
       @currency = currency.to_s
     end
 
@@ -87,6 +87,13 @@ module CurrencyConverter
       return nil unless compared_object.is_a?(CurrencyConverter::Money)
 
       amount <=> compared_object.convert_to(self.currency).amount
+    end
+
+    # overrided in order to agree with cents (precision = 2)
+    def ==(compared_object)
+      return nil unless compared_object.is_a?(CurrencyConverter::Money)
+
+      amount.round(2) == compared_object.convert_to(self.currency).amount.round(2)
     end
 
     private

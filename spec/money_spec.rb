@@ -52,10 +52,6 @@ describe CurrencyConverter::Money do
       expect(described_class.new(123, BASE_CURRENCY).amount).to be_a(Float)
     end
 
-    it 'stores an amount with precision = 2' do
-      expect(described_class.new(123.456, BASE_CURRENCY).amount).to eq(123.46)
-    end
-
     it 'creates an instance with provided currency' do
       expect(described_class.new(123.4, BASE_CURRENCY).currency).to eq(BASE_CURRENCY)
     end
@@ -101,6 +97,7 @@ describe CurrencyConverter::Money do
 
       context 'while converting to a different currency' do
         let(:converted_money) { money.convert_to('USD') }
+        let(:money_config) { described_class.configuration }
 
         it 'returns a new instance' do
           expect(converted_money.__id__).not_to eq(money.__id__)
@@ -112,7 +109,7 @@ describe CurrencyConverter::Money do
 
         context 'when current currency equals to base conversion currency' do
           it "returns amount multiplied by 'converted to' currency's rate" do
-            expect(converted_money.amount).to eq(55.50)
+            expect(converted_money.amount).to eq(money.amount * money_config.rates[converted_money.currency])
           end
         end
 
@@ -121,13 +118,13 @@ describe CurrencyConverter::Money do
 
           context 'when converted to base conversion currency' do
             it "returns amount devided by current currency's rate" do
-              expect(money.convert_to(BASE_CURRENCY).amount).to eq(50.00)
+              expect(money.convert_to(BASE_CURRENCY).amount).to eq(money.amount / money_config.rates[converted_money.currency])
             end
           end
 
           context 'when converted not to base conversion currency' do
             it "returns amount devided by current currency's rate and multiplied by 'converted to' currency's rate" do
-              expect(money.convert_to('Bitcoin').amount).to eq(0.24)
+              expect(money.convert_to('Bitcoin').amount).to eq(money.amount / money_config.rates[converted_money.currency] * money_config.rates['Bitcoin'])
             end
           end
         end
@@ -150,7 +147,7 @@ describe CurrencyConverter::Money do
       context 'when right money is a Money object' do
         it "converts right money's amount then sums up" do
           result = left_money + right_money
-          expect(result.amount).to eq(2.40)
+          expect(result.amount).to eq(left_money.amount + right_money.convert_to(left_money.currency).amount)
         end
 
         context 'when money are in the same currency' do
@@ -158,15 +155,15 @@ describe CurrencyConverter::Money do
 
           it 'returns a sum of two amounts' do
             result = left_money + right_money
-            expect(result.amount).to eq(2.5)
+            expect(result.amount).to eq(left_money.amount + right_money.amount)
           end
         end
       end
 
       context 'when right money is not a Money object' do
         it "converts addend to Float and sums up it with left money's amount" do
-          result = left_money + 1
-          expect(result.amount).to eq(2.5)
+          result = left_money + 2
+          expect(result.amount).to eq(left_money.amount + 2.to_f)
         end
 
         context 'when conversion failed' do
@@ -185,7 +182,7 @@ describe CurrencyConverter::Money do
       context 'when right money is a Money object' do
         it "converts right money's amount then subtracts" do
           result = left_money - right_money
-          expect(result.amount).to eq(0.6)
+          expect(result.amount).to eq(left_money.amount - right_money.convert_to(left_money.currency).amount)
         end
 
         context 'when money are in the same currency' do
@@ -193,15 +190,15 @@ describe CurrencyConverter::Money do
 
           it 'returns subtraction of two amounts' do
             result = left_money - right_money
-            expect(result.amount).to eq(0.5)
+            expect(result.amount).to eq(left_money.amount - right_money.amount)
           end
         end
       end
 
       context 'when right money is not a Money object' do
         it "converts subtrahend to Float and subtracts it from left money's amount" do
-          result = left_money - 1
-          expect(result.amount).to eq(0.5)
+          result = left_money - 2
+          expect(result.amount).to eq(left_money.amount - 2.to_f)
         end
 
         context 'when conversion failed' do
@@ -220,7 +217,7 @@ describe CurrencyConverter::Money do
       context 'when right money is a Money object' do
         it "converts right money's amount then divide" do
           result = left_money / right_money
-          expect(result.amount).to eq(1.67)
+          expect(result.amount).to eq(left_money.amount / right_money.convert_to(left_money.currency).amount)
         end
 
         context 'when money are in the same currency' do
@@ -228,7 +225,7 @@ describe CurrencyConverter::Money do
 
           it 'returns division of two amounts' do
             result = left_money / right_money
-            expect(result.amount).to eq(3.0)
+            expect(result.amount).to eq(left_money.amount / right_money.amount)
           end
         end
       end
@@ -236,7 +233,7 @@ describe CurrencyConverter::Money do
       context 'when right money is not a Money object' do
         it "converts divider to Float and divides left money's amount" do
           result = left_money / 2
-          expect(result.amount).to eq(0.75)
+          expect(result.amount).to eq(left_money.amount / 2.to_f)
         end
 
         context 'when conversion failed' do
@@ -255,7 +252,7 @@ describe CurrencyConverter::Money do
       context 'when right money is a Money object' do
         it "converts right money's amount then divide" do
           result = left_money * right_money
-          expect(result.amount).to eq(1.35)
+          expect(result.amount).to eq(left_money.amount * right_money.convert_to(left_money.currency).amount)
         end
 
         context 'when money are in the same currency' do
@@ -264,7 +261,7 @@ describe CurrencyConverter::Money do
 
           it 'returns multiplication of two amounts' do
             result = left_money * right_money
-            expect(result.amount).to eq(0.75)
+            expect(result.amount).to eq(left_money.amount * right_money.amount)
           end
         end
       end
@@ -272,7 +269,7 @@ describe CurrencyConverter::Money do
       context 'when right money is not a Money object' do
         it "converts multiplier to Float and multiplies left money's amount" do
           result = left_money * 2
-          expect(result.amount).to eq(3.0)
+          expect(result.amount).to eq(left_money.amount * 2.to_f)
         end
 
         context 'when conversion failed' do
@@ -286,21 +283,25 @@ describe CurrencyConverter::Money do
 
     describe '#==' do
       it 'returns false if compared object is not Money' do
-        expect(left_money == 1.5).to be_falsey
+        expect(left_money == (left_money + 1)).to be_falsey
+      end
+
+      it 'compares amounts with precision = 2' do
+        left_money = described_class.new(0.1251, 'USD')
+        right_money = described_class.new(0.1259, 'USD')
+        expect(left_money == right_money).to be_truthy
       end
 
       context 'when compared money is in the same currency' do
-        let(:right_money) { described_class.new(0.5, 'EUR') }
-
         it 'compares amounts without conversion' do
-          expect(left_money == right_money).to be_falsey
+          right_money = described_class.new(left_money.amount, left_money.currency)
+          expect(left_money == right_money).to be_truthy
         end
       end
 
       context 'when compared money is in another currency' do
-        let(:right_money) { described_class.new(1.67, 'USD') }
-
-        it 'compares amounts without conversion' do
+        it 'compares amounts after conversion' do
+          right_money = left_money.convert_to('USD')
           expect(left_money == right_money).to be_truthy
         end
       end
@@ -310,19 +311,18 @@ describe CurrencyConverter::Money do
       it 'raises an error if compared object is not Money' do
         expect { left_money < 0.5 }.to raise_error(ArgumentError, "comparison of #{left_money.class.name} with 0.5 failed")
       end
-      context 'when compared money is in the same currency' do
-        let(:right_money) { described_class.new(0.5, 'EUR') }
 
+      context 'when compared money is in the same currency' do
         it 'compares amounts without conversion' do
-          expect(left_money < right_money).to be_falsey
+          right_money = described_class.new(left_money.amount + 10, left_money.currency)
+          expect(left_money < right_money).to be_truthy
         end
       end
 
       context 'when compared money is in another currency' do
-        let(:right_money) { described_class.new(1.6, 'USD') }
-
-        it 'compares amounts without conversion' do
-          expect(left_money < right_money).to be_falsey
+        it 'compares amounts after conversion' do
+          right_money = described_class.new(left_money.amount, 'Bitcoin')
+          expect(left_money < right_money).to be_truthy
         end
       end
     end
@@ -333,18 +333,16 @@ describe CurrencyConverter::Money do
       end
 
       context 'when compared money is in the same currency' do
-        let(:right_money) { described_class.new(0.5, 'EUR') }
-
         it 'compares amounts without conversion' do
+          right_money = described_class.new(left_money.amount - 1, left_money.currency)
           expect(left_money > right_money).to be_truthy
         end
       end
 
       context 'when compared money is in another currency' do
-        let(:right_money) { described_class.new(1, 'Bitcoin') }
-
-        it 'compares amounts without conversion' do
-          expect(left_money > right_money).to be_falsey
+        it 'compares amounts after conversion' do
+          right_money = described_class.new(left_money.amount, 'USD')
+          expect(left_money > right_money).to be_truthy
         end
       end
     end
